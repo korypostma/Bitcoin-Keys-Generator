@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 import argparse
 import hashlib
 
@@ -57,7 +58,7 @@ def int_to_address(number):
     print('Converting from: ' + str(int(private_key, 16)))
 
     compressed_key = base58_check_encode(b'\x80', unhexlify(private_key), True)
-    print('Private key: ' + compressed_key)
+    print('Private key (base58): ' + compressed_key)
 
     # address
     x, y = str(g * int(private_key, 16)).split()
@@ -89,18 +90,40 @@ def wif_to_key(wif):
     return hexlify(b58decode(wif)[1:-slicer]).decode('utf-8')
 
 
+#Added just for fun, see main()
+def key_to_addr(s):
+    ripemd160 = hashlib.new('ripemd160')
+    ripemd160.update(bytes.fromhex(s))
+    return base58_check_encode(b'\0', ripemd160.digest())
+
 def main():
+    import hashlib
+
+    #This is the bitcoin paper sha256 hash
+    #btc_paper_key = key_to_addr("b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553")
+    #print(btc_paper_key)
+
     parser = argparse.ArgumentParser(description='Generates private key, public key and wallet address from number')
 
-    parser.add_argument('number', type=int, nargs='?', default=1,
-                        help='A required integer number argument')
+    parser.add_argument('number', type=str, nargs='?',
+            default=0x1,
+            #default=0x18e14a7b6a307f426a94f8114701e7c8e774e7f9a47e2c2035db29a206321725,
+            #Bitcoin paper sha256
+            #default=0xb1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553,
+                        help='A required string or hexadecimal or integer number argument')
     args = parser.parse_args()
-    int_to_address(args.number)
-
-# int_to_address(12345678900987654321)
-
+    try:
+        secret = int(args.number, 0)
+    except:
+        hash_sha256 = hashlib.new('SHA256')
+        hash_sha256.update(args.number.encode('utf-8'))
+        secret = int('0x'+hash_sha256.hexdigest(), 0)
+    int_to_address(secret)
 
 if __name__ == "__main__":
+    import time
+    start_time = time.perf_counter()
     main()
+    stop_time = time.perf_counter()
+    print(f"BTC Private to Public generated in {stop_time - start_time:0.4f} seconds")
 
-# For Donation: 1z4QU2cwJMorUq9ouUSbZNhHhQhCT4wRc
